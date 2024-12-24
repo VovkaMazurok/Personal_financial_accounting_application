@@ -11,14 +11,29 @@ class DataBalance:
         """Метод для отримання балансу з файлу"""
         parent_directory = pathlib.Path(__file__).resolve().parent
         open_file = parent_directory.joinpath(file)
-        return open_file.read_text()
+        try:
+            # Спроба прочитати вміст файлу
+            return open_file.read_text()
+        except FileNotFoundError:
+            # Якщо файл не знайдено, створюємо його з початковим балансом 0
+            open_file.write_text("0")
+            print(f"File '{file}' was not found. A new file has been created with a balance of 0.")
+            return "0"
 
     @staticmethod
     def update_file_balance(balance, file="balance.txt"):
         """Метод для оновлення балансу в файлі"""
         parent_directory = pathlib.Path(__file__).resolve().parent
         open_file = parent_directory.joinpath(file)
-        open_file.write_text(str(balance))
+        try:
+            # Спробуємо записати новий баланс у файл
+            open_file.write_text(str(balance))
+        except FileNotFoundError:
+            # Якщо файл не знайдено, створимо його з початковим балансом 0
+            open_file.write_text("0")
+            print(f"File '{file}' was not found. A new file has been created with a balance of 0.")
+            # Після створення оновлюємо файл новим балансом
+            open_file.write_text(str(balance))
         print(f'Your balance is: {balance}')
         print('----------------------------------------')
 
@@ -27,12 +42,18 @@ class AccountTransactions:
     def __init__(self, data, sum_transaction, name_transaction):
         self.data = data
 
-
     @staticmethod
     def transaction_record(data, file="account_info.csv"):
         """Метод для запису транзакцій в файл"""
         parent_directory = pathlib.Path(__file__).resolve().parent
         open_file = parent_directory.joinpath(file)
+
+            # Перевіряємо, чи файл існує, якщо ні — створюємо його
+        if not open_file.exists():
+            print(f"File '{file}' does not exist. Creating a new file.")
+            open_file.touch()  # Створює порожній файл
+
+            # Відкриваємо файл у режимі "a" (append) і записуємо дані
         with open_file.open("a", encoding="utf-8") as f:
             f.write(data + "\n")
 
@@ -49,6 +70,7 @@ class BalanceOperations:
     def __init__(self, sum_transaction, my_balance):
         self.sum_transaction = sum_transaction
         self.my_balance = my_balance
+
     @staticmethod
     def add(sum_transaction, my_balance):
         """Метод для додавання суми транзакції до балансу"""
@@ -64,9 +86,11 @@ class UserInterface:
 
     @staticmethod
     def display_menu():
+        """Відображає головне меню для вибору операції."""
         print("Select an operation:\n1-transaction\n2-balance statement\n3-transaction histori\n4-Exit")
     @staticmethod
     def get_user_choice():
+        """Отримує вибір користувача з головного меню (1–4)."""
         try:
             choice = int(input('Enter a choice: \n'))
             if choice not in [1, 2, 3, 4]:
@@ -78,6 +102,7 @@ class UserInterface:
 
     @staticmethod
     def select_transaction_type():
+        """Запитує тип транзакції у користувача (1 – надходження, 2 – списання)."""
         try:
             operation = int(input('Select an operation:\n1-receipt\n2-debit\nEnter a number: \n'))
             if operation not in [1, 2]:
@@ -98,12 +123,10 @@ def main():
 
         if choice == 1:
             my_balance = DataBalance.get_balance(file="balance.txt")
-
-
-
             operation = UserInterface.select_transaction_type()
             sum_transaction = int(input("Enter the sum: "))
             name_transaction = input("Enter the name of the transaction: ")
+
             if operation is None:
                 continue
 
@@ -114,6 +137,7 @@ def main():
             elif operation == 2:
                 new_balance = BalanceOperations.sub(int(my_balance), sum_transaction)
                 AccountTransactions.log_transaction("debit", sum_transaction, name_transaction)
+
             DataBalance.update_file_balance(new_balance)
 
         elif choice == 2:
